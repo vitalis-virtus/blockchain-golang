@@ -2,11 +2,11 @@ package blockchain
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/dgraph-io/badger"
+	"github.com/vitalis-virtus/blockchain-golang/utils"
 )
-
-const dbPath = "./tmp/blocks"
 
 type BlockChain struct {
 	LastHash []byte
@@ -22,12 +22,13 @@ type BlockChainIterator struct {
 func InitBlockChain() *BlockChain {
 	var lastHash []byte
 
-	opts := badger.DefaultOptions(dbPath)
-	opts.Dir = dbPath
-	opts.ValueDir = dbPath
+	opts := badger.DefaultOptions(os.Getenv("DB_PATH"))
+	opts.Logger = nil
+	opts.Dir = os.Getenv("DB_PATH")
+	opts.ValueDir = os.Getenv("DB_PATH")
 
 	db, err := badger.Open(opts)
-	Handle(err)
+	utils.Handle(err)
 
 	err = db.Update(func(txn *badger.Txn) error {
 		if _, err := txn.Get([]byte("lh")); err == badger.ErrKeyNotFound {
@@ -35,7 +36,7 @@ func InitBlockChain() *BlockChain {
 			genesis := Genesis()
 			fmt.Println("Genesis proved")
 			err = txn.Set(genesis.Hash, genesis.Serialize())
-			Handle(err)
+			utils.Handle(err)
 			err = txn.Set([]byte("lh"), genesis.Hash)
 
 			lastHash = genesis.Hash
@@ -43,7 +44,7 @@ func InitBlockChain() *BlockChain {
 			return err
 		} else {
 			item, err := txn.Get([]byte("lh"))
-			Handle(err)
+			utils.Handle(err)
 			err = item.Value(func(val []byte) error {
 				lastHash = val
 				return nil
@@ -52,7 +53,7 @@ func InitBlockChain() *BlockChain {
 		}
 	})
 
-	Handle(err)
+	utils.Handle(err)
 
 	blockChain := &BlockChain{LastHash: lastHash, Database: db}
 
@@ -67,27 +68,27 @@ func (chain *BlockChain) AddBlock(data string) {
 	var lastHash []byte
 	err := chain.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte("lh"))
-		Handle(err)
+		utils.Handle(err)
 		err = item.Value(func(val []byte) error {
 			lastHash = val
 			return nil
 		})
 		return err
 	})
-	Handle(err)
+	utils.Handle(err)
 
 	newBlock := CreateBlock(data, lastHash)
 
 	err = chain.Database.Update(func(txn *badger.Txn) error {
 		err := txn.Set(newBlock.Hash, newBlock.Serialize())
-		Handle(err)
+		utils.Handle(err)
 		err = txn.Set([]byte("lh"), newBlock.Hash)
 
 		chain.LastHash = newBlock.Hash
 
 		return err
 	})
-	Handle(err)
+	utils.Handle(err)
 }
 
 func (chain *BlockChain) Iterator() *BlockChainIterator {
@@ -102,7 +103,7 @@ func (iter *BlockChainIterator) Next() *Block {
 
 	err := iter.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(iter.CurrentHash)
-		Handle(err)
+		utils.Handle(err)
 		err = item.Value(func(val []byte) error {
 			encodedBlock = val
 			return nil
@@ -111,7 +112,7 @@ func (iter *BlockChainIterator) Next() *Block {
 
 		return err
 	})
-	Handle(err)
+	utils.Handle(err)
 
 	iter.CurrentHash = oldBlock.PrevHash
 

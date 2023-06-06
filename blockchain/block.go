@@ -3,7 +3,8 @@ package blockchain
 import (
 	"bytes"
 	"encoding/gob"
-	"log"
+
+	"github.com/vitalis-virtus/blockchain-golang/utils"
 )
 
 type Block struct {
@@ -35,7 +36,7 @@ func (b *Block) Serialize() []byte {
 
 	err := encoder.Encode(b)
 
-	Handle(err)
+	utils.Handle(err)
 
 	return res.Bytes()
 }
@@ -46,13 +47,7 @@ func Deserialize(b []byte) *Block {
 
 	err := decoder.Decode(&block)
 
-	Handle(err)
+	utils.Handle(err)
 
 	return &block
-}
-
-func Handle(e error) {
-	if e != nil {
-		log.Panic(e)
-	}
 }

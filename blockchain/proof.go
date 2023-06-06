@@ -3,14 +3,16 @@ package blockchain
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
 	"math/big"
+	"os"
+	"strconv"
+
+	"github.com/vitalis-virtus/blockchain-golang/utils"
 )
 
-const Difficulty = 12
+var Difficulty, _ = strconv.Atoi(os.Getenv("DIFFICULTY"))
 
 // Requirements: the first bytes must contain 0s which si derived from difficulty
 
@@ -37,8 +39,8 @@ func (pow *ProofOfWork) InitData(nonce int) []byte {
 		[][]byte{
 			pow.Block.PrevHash,
 			pow.Block.Data,
-			ToHex(int64(nonce)),
-			ToHex(int64(Difficulty)),
+			utils.ConvertToHex(int64(nonce)),
+			utils.ConvertToHex(int64(Difficulty)),
 		},
 		[]byte{})
 
@@ -83,15 +85,4 @@ func (pow *ProofOfWork) Validate() bool {
 
 	// we compare two big.Int numbers and check for corectness of the nonce
 	return intHash.Cmp(pow.Target) == -1
-}
-
-// ToHex transfor int number to slice of bytes
-func ToHex(num int64) []byte {
-	buff := new(bytes.Buffer)
-	err := binary.Write(buff, binary.BigEndian, num)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	return buff.Bytes()
 }
